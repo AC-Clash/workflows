@@ -1,9 +1,10 @@
-name: Release
+name: Release Called Workflow
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
+    secrets:
+      token:
+        required: true
 
 permissions:
   contents: write
@@ -14,7 +15,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Prepare local repo
         run: |
@@ -22,7 +23,7 @@ jobs:
           chmod +x gradlew
 
       - name: Set up JDK
-        uses: actions/setup-java@v3.13.0
+        uses: actions/setup-java@v4
         with:
           distribution: 'adopt'
           java-version: '21'
