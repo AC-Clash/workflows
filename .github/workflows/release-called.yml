@@ -129,7 +129,7 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           release_notes=${{ steps.release_notes.outputs.release_notes }}
-          if [ $release_notes == "\* " ]; then
+          if [ $release_notes == "* " ]; then
             release_notes="* Updated version to ${{ steps.determine_version.outputs.version_num }}"
           fi
           echo "Pushing release with the following info..."
