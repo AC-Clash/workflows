@@ -32,7 +32,7 @@ jobs:
         id: last_version
         run: |
          last_tag=$(git rev-list --tags --max-count=1)
-         if [[ $last_tag == "" ]]; then
+         if [ $last_tag == "" ]; then
            echo "There are no previous tags. There could have been an early snapshot version"
            echo "unversioned=true" >> $GITHUB_OUTPUT
            echo "changed=true" >> $GITHUB_ENV
@@ -47,7 +47,7 @@ jobs:
         id: determine_version
         run: |
           version_num=$(./gradlew -q printVersion)
-          if [ $version_num == "*SNAPSHOT*"] then;
+          if [[ $version_num == "*SNAPSHOT*" ]]; then
             echo "unversioned=true" >> $GITHUB_ENV
             echo "changed=false" >> $GITHUB_ENV
             echo "Snapshot version detected. Nothing to do here"
@@ -132,7 +132,7 @@ jobs:
           #git tag -a ${{ steps.determine_version.outputs.version }} -m "Version ${{ steps.determine_version.outputs.version_num }}"
           #git push origin ${{ steps.determine_version.outputs.version }}
           release_notes=${{ steps.release_notes.outputs.release_notes }}
-          if [ $release_notes == "\* " ] then;
+          if [ $release_notes == "\* " ]; then
             release_notes="* Updated version to ${{ steps.determine_version.outputs.version_num }}"
           fi
           id=$( curl -L \
