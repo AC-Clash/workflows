@@ -107,6 +107,25 @@ jobs:
            release_notes="* Updated version to ${{ steps.determine_version.outputs.version_num }}"
            echo "release_notes=$release_notes" >> $GITHUB_OUTPUT
          fi
+          
+      - name: Create release
+        id: create_release
+        if: ${{ env.changed == 'true' }}
+        run: |
+          echo "Pushing release with the following info..."
+          echo "Tag: ${{ steps.determine_version.outputs.version }}"
+          echo "Version: ${{ steps.determine_version.outputs.version_num }}"
+          echo "Body: "
+          echo "${{ steps.release_notes.outputs.release_notes }}"
+          id=$( curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/releases \
+            -d '{"tag_name":"${{ steps.determine_version.outputs.version }}","name":"${{ steps.determine_version.outputs.version_num }}","body":"${{ steps.release_notes.outputs.release_notes }}","draft":false,"prerelease":false,"generate_release_notes":true}' | jq '.id' )
+          echo "The ID is $id"
+          echo "id=$id" >> $GITHUB_OUTPUT
 
       - name: Build JAR file
         id: build_jar
@@ -130,25 +149,6 @@ jobs:
             cp -R build/ $directory/Build-Files/
             echo "Backed up build files"
           fi
-          
-      - name: Create release
-        id: create_release
-        if: ${{ env.changed == 'true' }}
-        run: |
-          echo "Pushing release with the following info..."
-          echo "Tag: ${{ steps.determine_version.outputs.version }}"
-          echo "Version: ${{ steps.determine_version.outputs.version_num }}"
-          echo "Body: "
-          echo "${{ steps.release_notes.outputs.release_notes }}"
-          id=$( curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/releases \
-            -d '{"tag_name":"${{ steps.determine_version.outputs.version }}","name":"${{ steps.determine_version.outputs.version_num }}","body":"${{ steps.release_notes.outputs.release_notes }}","draft":false,"prerelease":false,"generate_release_notes":true}' | jq '.id' )
-          echo "The ID is $id"
-          echo "id=$id" >> $GITHUB_OUTPUT
 
       - name: Upload assets
         if: ${{ env.changed == 'true' }}
