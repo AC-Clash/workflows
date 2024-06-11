@@ -135,6 +135,11 @@ jobs:
           if [ $release_notes == "\* " ]; then
             release_notes="* Updated version to ${{ steps.determine_version.outputs.version_num }}"
           fi
+          echo "Pushing release with the following info..."
+          echo "Tag: ${{ steps.determine_version.outputs.version }}"
+          echo "Version: ${{ steps.determine_version.outputs.version_num }}"
+          echo "Body: "
+          echo "$release_notes"
           id=$( curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
