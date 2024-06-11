@@ -31,12 +31,13 @@ jobs:
       - name: Get last version
         id: last_version
         run: |
-         last_version=$(git describe --tags $(git rev-list --tags --max-count=1))
-         if [[ $last_version == *"fatal"* ]]; then
+         tag=$(git rev-list --tags --max-count=1)
+         if [[ $tag == "" ]]; then
            echo "There are no previous tags. Adding changes since initial commit..."
            echo "no_tags=true" >> $GITHUB_OUTPUT
            echo "changed=true" >> $GITHUB_ENV
          else
+           last_version=$(git describe --tags $tag)
            echo "last_version=$last_version" >> $GITHUB_OUTPUT
            echo "The last version was $last_version"
          fi
@@ -44,7 +45,7 @@ jobs:
 
       - name: Determine current version
         id: determine_version
-        if: always() && ${{ steps.last_version.outputs.no_tags != 'true' }}
+        if: ${{ steps.last_version.outputs.no_tags != 'true' }}
         run: |
           version_num=$(./gradlew printVersion)
           echo "version_num=$version_num" >> $GITHUB_OUTPUT
@@ -53,7 +54,7 @@ jobs:
 
       - name: Check if version has changed
         id: version_changed
-        if: always() && ${{ steps.last_version.outputs.no_tags != 'true' }}
+        if: ${{ steps.last_version.outputs.no_tags != 'true' }}
         run: |
          changed="${{ steps.determine_version.outputs.version != steps.previous_version.outputs.last_version }}"
          echo "changed=$changed" >> $GITHUB_ENV
@@ -65,7 +66,7 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
-        if: always() && ${{ env.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
          # Get the commit hash of the latest tag
          latest_tag="$(git rev-list --tags --max-count=1)"
@@ -92,7 +93,7 @@ jobs:
 
       - name: Build JAR file
         id: build_jar
-        if: always() && ${{ env.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
           directory=~/actions-runner/_work/${{ github.event.repository.name }}
           echo "directory=$directory" >> GITHUB_OUTPUT
@@ -116,7 +117,7 @@ jobs:
           
       - name: Create release
         id: create_release
-        if: always() && ${{ env.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
           #git tag -a ${{ steps.determine_version.outputs.version }} -m "Version ${{ steps.determine_version.outputs.version_num }}"
           #git push origin ${{ steps.determine_version.outputs.version }}
@@ -131,7 +132,7 @@ jobs:
           echo "id=$id" >> $GITHUB_OUTPUT
 
       - name: Upload assets
-        if: always() && ${{ env.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           base_name=$(basename $file_name)
