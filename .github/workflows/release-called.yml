@@ -43,10 +43,8 @@ jobs:
            echo "The last version was $last_version"
          fi
 
-
       - name: Determine current version
         id: determine_version
-        if: ${{ steps.last_version.outputs.no_tags != 'true' }}
         run: |
           version_num=$(./gradlew printVersion)
           echo "version_num=$version_num" >> $GITHUB_OUTPUT
