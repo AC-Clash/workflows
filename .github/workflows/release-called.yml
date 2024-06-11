@@ -105,6 +105,7 @@ jobs:
          else
            echo "No new commit messages. Assuming it was only a version change"
            release_notes="* Updated version to ${{ steps.determine_version.outputs.version_num }}"
+           echo "release_notes=$release_notes" >> $GITHUB_OUTPUT
          fi
 
       - name: Build JAR file
