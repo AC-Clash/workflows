@@ -31,14 +31,15 @@ jobs:
       - name: Get last version
         id: last_version
         run: |
-         tag=$(git rev-list --tags --max-count=1)
-         if [[ $tag == "" ]]; then
+         last_tag=$(git rev-list --tags --max-count=1)
+         if [[ $last_tag == "" ]]; then
            echo "There are no previous tags. Adding changes since initial commit..."
            echo "no_tags=true" >> $GITHUB_OUTPUT
            echo "changed=true" >> $GITHUB_ENV
          else
-           last_version=$(git describe --tags $tag)
+           last_version=$(git describe --tags $last_tag)
            echo "last_version=$last_version" >> $GITHUB_OUTPUT
+           echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
            echo "The last version was $last_version"
          fi
 
@@ -68,12 +69,17 @@ jobs:
         id: release_notes
         if: ${{ env.changed == 'true' }}
         run: |
-         # Get the commit hash of the latest tag
-         latest_tag="$(git rev-list --tags --max-count=1)"
-         echo "The commit of the latest tag is $latest_tag"
+         # Get the hash of the last commit
+         no_tags=${{ steps.last_version.outputs.no_tags }}
+         if [ $no_tags == 'true' ]; then
+           last_commit=${{ steps.last_version.outputs.last_tag }}
+         else
+           last_commit=$(git rev-list --max-parents=0 HEAD)
+         fi
+         echo "The hash of the last version's commit is $last_commit"
 
-         # Get commit messages since the latest tag
-         commit_messages="$(git log --pretty=format:"%s" $latest_tag..HEAD)"
+         # Get commit messages since then
+         commit_messages="$(git log --pretty=format:"%s" $last_commit..HEAD)"
          printf "Here are the new commit messages! \n$commit_messages"
 
          # Generate end of file delimiter
