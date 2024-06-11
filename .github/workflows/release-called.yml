@@ -28,7 +28,7 @@ jobs:
           properties=$(./gradlew -q properties)
           echo "properties=$properties" >> $GITHUB_OUTPUT
           key="targetCompatibility"
-          target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')"
+          target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
           echo "target=$target" >> $GITHUB_OUTPUT
           echo "This project requires JDK version $target"
           
