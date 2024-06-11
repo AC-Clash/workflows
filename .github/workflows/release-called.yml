@@ -28,7 +28,22 @@ jobs:
           distribution: 'adopt'
           java-version: '21'
 
-      - name: Determine version
+      - name: Get last version
+        id: last_version
+        run: |
+         last_tag=$(git rev-list --tags --max-count=1)
+         if [[ $last_tag == "" ]]; then
+           echo "There are no previous tags. Adding changes since initial commit..."
+           echo "no_tags=true" >> $GITHUB_OUTPUT
+           echo "changed=true" >> $GITHUB_ENV
+         else
+           last_version=$(git describe --tags $last_tag)
+           echo "last_version=$last_version" >> $GITHUB_OUTPUT
+           echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
+           echo "The last version was $last_version"
+         fi
+
+      - name: Determine current version
         id: determine_version
         run: |
           version_num=$(./gradlew -q printVersion)
@@ -36,18 +51,12 @@ jobs:
           echo "version=v$version_num" >> $GITHUB_OUTPUT
           echo "The current version is v$version_num"
 
-      - name: Get previous version
-        id: previous_version
-        run: |
-          prev_version=$(git describe --tags $(git rev-list --tags --max-count=1))
-          echo "prev_version=$prev_version" >> $GITHUB_OUTPUT
-          echo "The previous version was $prev_version"
-
       - name: Check if version has changed
         id: version_changed
+        if: ${{ steps.last_version.outputs.no_tags != 'true' }}
         run: |
-         changed="${{ steps.determine_version.outputs.version != steps.previous_version.outputs.prev_version }}"
-         echo "changed=$changed" >> $GITHUB_OUTPUT
+         changed="${{ steps.determine_version.outputs.version != steps.previous_version.outputs.last_version }}"
+         echo "changed=$changed" >> $GITHUB_ENV
          if [ $changed == 'true' ]; then
            echo "The plugin version has changed!"
          else
@@ -56,14 +65,19 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
-        if: ${{ steps.version_changed.outputs.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
-         # Get the commit hash of the latest tag
-         latest_tag="$(git rev-list --tags --max-count=1)"
-         echo "The commit of the latest tag is $latest_tag"
+         # Get the hash of the last commit
+         no_tags=${{ steps.last_version.outputs.no_tags }}
+         if [ $no_tags == 'true' ]; then
+           last_commit=$(git rev-list --max-parents=0 HEAD)
+         else
+           last_commit=${{ steps.last_version.outputs.last_tag }}
+         fi
+         echo "The hash of the last version's commit is $last_commit"
 
-         # Get commit messages since the latest tag
-         commit_messages="$(git log --pretty=format:"%s" $latest_tag..HEAD)"
+         # Get commit messages since then
+         commit_messages="$(git log --pretty=format:"%s" $last_commit..HEAD)"
          printf "Here are the new commit messages! \n$commit_messages"
 
          # Generate end of file delimiter
@@ -83,7 +97,7 @@ jobs:
 
       - name: Build JAR file
         id: build_jar
-        if: ${{ steps.version_changed.outputs.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
           directory=~/actions-runner/_work/${{ github.event.repository.name }}
           echo "directory=$directory" >> GITHUB_OUTPUT
@@ -107,7 +121,7 @@ jobs:
           
       - name: Create release
         id: create_release
-        if: ${{ steps.version_changed.outputs.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
           #git tag -a ${{ steps.determine_version.outputs.version }} -m "Version ${{ steps.determine_version.outputs.version_num }}"
           #git push origin ${{ steps.determine_version.outputs.version }}
@@ -122,7 +136,7 @@ jobs:
           echo "id=$id" >> $GITHUB_OUTPUT
 
       - name: Upload assets
-        if: ${{ steps.version_changed.outputs.changed == 'true' }}
+        if: ${{ env.changed == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           base_name=$(basename $file_name)
