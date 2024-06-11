@@ -139,7 +139,7 @@ jobs:
           echo "Tag: ${{ steps.determine_version.outputs.version }}"
           echo "Version: ${{ steps.determine_version.outputs.version_num }}"
           echo "Body: "
-          echo "$release_notes"
+          echo "${{ steps.release_notes.outputs.release_notes }}"
           id=$( curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
