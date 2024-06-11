@@ -46,7 +46,7 @@ jobs:
       - name: Determine current version
         id: determine_version
         run: |
-          version_num=$(./gradlew printVersion)
+          version_num=$(./gradlew -q printVersion)
           echo "version_num=$version_num" >> $GITHUB_OUTPUT
           echo "version=v$version_num" >> $GITHUB_OUTPUT
           echo "The current version is v$version_num"
