@@ -72,9 +72,9 @@ jobs:
          # Get the hash of the last commit
          no_tags=${{ steps.last_version.outputs.no_tags }}
          if [ $no_tags == 'true' ]; then
-           last_commit=${{ steps.last_version.outputs.last_tag }}
-         else
            last_commit=$(git rev-list --max-parents=0 HEAD)
+         else
+           last_commit=${{ steps.last_version.outputs.last_tag }}
          fi
          echo "The hash of the last version's commit is $last_commit"
 
