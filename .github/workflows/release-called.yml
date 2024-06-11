@@ -16,17 +16,48 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Prepare local repo
         run: |
           git fetch --tags origin
           chmod +x gradlew
 
+      - name: Get Java info
+        id: retrieve_java
+        run: |
+          properties=$(./gradlew -q properties)
+          echo "properties=$properties" >> $GITHUB_OUTPUT
+          key="targetCompatibility"
+          target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')"
+          echo "target=$target" >> $GITHUB_OUTPUT
+          echo "This project requires JDK version $target"
+          
+          # Get installed JDK versions
+          java_list=$(update-alternatives --list java)
+          for i in $java_list; do
+            version_output=$("$java_list" --version 2>&1 | head -n 1)
+            version=$(echo "$version_output" | awk -F' ' '{print $2}')
+            major_version=$(echo "$version" | awk -F'.' '{print $1}')
+            # For versions like 1.8, the major version is the second part
+            if [ "$major_version" = "1" ]; then
+              major_version=$(echo "$version" | awk -F'.' '{print $2}')
+            fi
+            echo "Found JDK version $major_version"
+            if [ "$major_version" = "$target" ]; then
+              echo "JDK version matches required version. Using the JDK entry '$i'"
+              java_exec=$i
+              echo "java_exec=$java_exec" >> $GITHUB_OUTPUT
+              echo "has_jdk=true" >> $GITHUB_OUTPUT
+              break
+            fi
+          done
+
       - name: Set up JDK
+        if: ${{ steps.retrieve_java.outputs.has_jdk != 'true' }}
         uses: actions/setup-java@v4
         with:
           distribution: 'adopt'
-          java-version: '21'
+          java-version: '${{ steps.retrieve_java.outputs.target }}'
 
       - name: Get last version
         id: last_version
@@ -46,7 +77,8 @@ jobs:
       - name: Determine current version
         id: determine_version
         run: |
-          version_num=$(./gradlew -q printVersion)
+          key="version"
+          version_num=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
           if [ "$version_num" = "*SNAPSHOT*" ]; then
             echo "unversioned=true" >> $GITHUB_ENV
             echo "changed=false" >> $GITHUB_ENV
@@ -107,7 +139,7 @@ jobs:
            release_notes="* Updated version to ${{ steps.determine_version.outputs.version_num }}"
            echo "release_notes=$release_notes" >> $GITHUB_OUTPUT
          fi
-          
+
       - name: Create release
         id: create_release
         if: ${{ env.changed == 'true' }}
