@@ -63,7 +63,7 @@ jobs:
 
       - name: Generate release notes
         id: release_notes
-        if: always() && ${{ changed == 'true' }}
+        if: always() && ${{ env.changed == 'true' }}
         run: |
          # Get the commit hash of the latest tag
          latest_tag="$(git rev-list --tags --max-count=1)"
@@ -90,7 +90,7 @@ jobs:
 
       - name: Build JAR file
         id: build_jar
-        if: always() && ${{ changed == 'true' }}
+        if: always() && ${{ env.changed == 'true' }}
         run: |
           directory=~/actions-runner/_work/${{ github.event.repository.name }}
           echo "directory=$directory" >> GITHUB_OUTPUT
@@ -114,7 +114,7 @@ jobs:
           
       - name: Create release
         id: create_release
-        if: always() && ${{ changed == 'true' }}
+        if: always() && ${{ env.changed == 'true' }}
         run: |
           #git tag -a ${{ steps.determine_version.outputs.version }} -m "Version ${{ steps.determine_version.outputs.version_num }}"
           #git push origin ${{ steps.determine_version.outputs.version }}
@@ -129,7 +129,7 @@ jobs:
           echo "id=$id" >> $GITHUB_OUTPUT
 
       - name: Upload assets
-        if: always() && ${{ changed == 'true' }}
+        if: always() && ${{ env.changed == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           base_name=$(basename $file_name)
