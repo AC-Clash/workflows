@@ -176,28 +176,29 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           if [ -d "../Build-Files/" ]; then
-            cp -a ../Build-Files/. .
-            echo "Copied previous build files"
-            ./gradlew build
-            echo "Updating build files..."
-            rm -r ../Build-Files/
-            mkdir ../Build-Files/
+          rsync -av --progress ../Build-Files/. .
+          echo "Copied previous build files"
+          ./gradlew build
+          echo "Updating build files..."
+          rm -r ../Build-Files/
+          mkdir ../Build-Files/
           else
-            echo "Previous build files weren't detected. This will take longer!"
-            mkdir ../Build-Files/
-            ./gradlew build
-            echo "Backing up build files..."
+          echo "Previous build files weren't detected. This will take longer!"
+          mkdir ../Build-Files/
+          ./gradlew build
+          echo "Backing up build files..."
           fi
-          cp -a .gradle ../Build-Files/
-          cp -a build ../Build-Files/
+          rsync -av --progress .gradle ../Build-Files/
+          rsync -av --progress build ../Build-Files/ --exclude build/libs
 
       - name: Upload assets
         if: ${{ env.changed == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
-          echo "The JAR file relative name is $file_name"
-          base_name=$(basename "$file_name")
-          base_name=${base_name// /-}
+          file_name_f=${file_name// /-}
+          mv "$file_name" "$file_name_f"
+          echo "The JAR file relative name is $file_name_f"
+          base_name=$(basename "$file_name_f")
           echo "The JAR file base name is $base_name"
           curl -L \
             -X POST \
@@ -206,4 +207,4 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             -H "Content-Type: multipart/form-data" \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets?name=$base_name" \
-            --data-binary "@$file_name"
+            --data-binary "@$file_name_f"
