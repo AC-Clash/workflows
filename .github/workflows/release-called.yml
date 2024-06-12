@@ -81,7 +81,7 @@ jobs:
         id: determine_version
         run: |
           key="version"
-          version_num=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
+          version_num=$(echo "${{ steps.retrieve_java.outputs.properties }}" | awk -F': ' -v key="$key" '$1 == key {print $2}')
           if [ "$version_num" = "*SNAPSHOT*" ]; then
             echo "unversioned=true" >> $GITHUB_ENV
             echo "changed=false" >> $GITHUB_ENV
