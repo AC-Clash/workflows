@@ -26,7 +26,11 @@ jobs:
         id: retrieve_java
         run: |
           properties=$(./gradlew -q properties)
-          echo "properties=$properties" >> $GITHUB_OUTPUT
+          {
+          echo 'properties<<EOF'
+          echo "$properties"
+          echo EOF
+          } >> "$GITHUB_OUTPUT"
           key="targetCompatibility"
           target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
           echo "target=$target" >> $GITHUB_OUTPUT
