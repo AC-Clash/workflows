@@ -81,7 +81,7 @@ jobs:
          else
            last_version=$(git describe --tags $last_tag)
            echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
-           last_version_num={{ steps.previous_version.outputs.last_version }}
+           last_version_num=${{ steps.previous_version.outputs.last_version }}
            last_version_num=${last_version_num//"v"/}
            echo "last_version_num=$last_version_num" >> $GITHUB_OUTPUT
            echo "The last version was $last_version_num"
