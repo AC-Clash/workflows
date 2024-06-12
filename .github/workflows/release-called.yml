@@ -35,8 +35,8 @@ jobs:
           # Get installed JDK versions
           java_list=$(update-alternatives --list java)
           for i in $java_list; do
-            version_output=$("$java_list" --version 2>&1 | head -n 1)
-            version=$(echo "$version_output" | awk -F' ' '{print $2}')
+            version_output=$("$java_list" -version 2>&1 | head -n 1)
+            version=$(echo "$version_output" | awk -F'"' '{print $2}')
             major_version=$(echo "$version" | awk -F'.' '{print $1}')
             # For versions like 1.8, the major version is the second part
             if [ "$major_version" = "1" ]; then
