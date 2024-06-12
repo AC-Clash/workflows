@@ -73,15 +73,17 @@ jobs:
         id: last_version
         run: |
          last_tag=$(git rev-list --tags --max-count=1)
+         echo "The hash of the last tag commit is $last_tag"
          if [ "$last_tag" = "" ]; then
            echo "There are no previous tags. There could have been an early snapshot version"
            echo "unversioned=true" >> $GITHUB_OUTPUT
            echo "changed=true" >> $GITHUB_ENV
          else
-           last_version=$(git describe --tags $last_tag)
-           echo "last_version=$last_version" >> $GITHUB_OUTPUT
            echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
-           echo "The last version was $last_version"
+           last_version=$(git describe --tags $last_tag)
+           last_version_num=${last_version//"v"/}
+           echo "last_version_num=$last_version_num" >> $GITHUB_OUTPUT
+           echo "The last version was $last_version_num"
          fi
 
       - name: Determine current version
@@ -95,18 +97,18 @@ jobs:
             echo "Snapshot version detected. Nothing to do here"
           else
             echo "version_num=$version_num" >> $GITHUB_OUTPUT
-            echo "version=v$version_num" >> $GITHUB_OUTPUT
-            echo "The current version is v$version_num"
+            echo "The current version is $version_num"
           fi
 
       - name: Check if version has changed
         id: version_changed
         if: ${{ steps.last_version.outputs.unversioned != 'true' }}
         run: |
-         changed="${{ steps.determine_version.outputs.version != steps.previous_version.outputs.last_version }}"
+         changed="${{ steps.determine_version.outputs.version_num != steps.last_version.outputs.last_version_num }}"
          echo "changed=$changed" >> $GITHUB_ENV
          if [ "$changed" = "true" ]; then
-           echo "The plugin version has changed!"
+           
+           echo "The plugin has updated! The version has changed from ${{ steps.last_version.outputs.last_version_num }} to ${{ steps.determine_version.outputs.version_num }}"
          else
            echo "The plugin version hasn't changed"
          fi
@@ -155,8 +157,8 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           echo "Pushing release with the following info..."
-          echo "Tag: ${{ steps.determine_version.outputs.version }}"
-          echo "Version: ${{ steps.determine_version.outputs.version_num }}"
+          echo "Tag: v${{ steps.determine_version.outputs.version_num }}"
+          echo "Name: ${{ steps.determine_version.outputs.version_num }}"
           echo "Body: "
           echo "${{ steps.release_notes.outputs.release_notes }}"
           id=$( curl -L \
@@ -165,7 +167,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.TOKEN }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             https://api.github.com/repos/${{ github.repository }}/releases \
-            -d '{"tag_name":"${{ steps.determine_version.outputs.version }}","name":"${{ steps.determine_version.outputs.version_num }}","body":"${{ steps.release_notes.outputs.release_notes }}","draft":false,"prerelease":false,"generate_release_notes":true}' | jq '.id' )
+            -d '{"tag_name":"v${{ steps.determine_version.outputs.version_num }}","name":"${{ steps.determine_version.outputs.version_num }}","body":"${{ steps.release_notes.outputs.release_notes }}","draft":false,"prerelease":false,"generate_release_notes":true}' | jq '.id' )
           echo "The ID is $id"
           echo "id=$id" >> $GITHUB_OUTPUT
 
