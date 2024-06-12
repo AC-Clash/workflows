@@ -104,11 +104,11 @@ jobs:
         id: version_changed
         if: ${{ steps.last_version.outputs.unversioned != 'true' }}
         run: |
-         changed="${{ steps.determine_version.outputs.version_num != steps.previous_version.outputs.last_version_num }}"
+         changed="${{ steps.determine_version.outputs.version_num != steps.last_version.outputs.last_version_num }}"
          echo "changed=$changed" >> $GITHUB_ENV
          if [ "$changed" = "true" ]; then
            
-           echo "The plugin has updated! The version has changed from ${{ steps.previous_version.outputs.last_version_num }} to ${{ steps.determine_version.outputs.version_num }}"
+           echo "The plugin has updated! The version has changed from ${{ steps.last_version.outputs.last_version_num }} to ${{ steps.determine_version.outputs.version_num }}"
          else
            echo "The plugin version hasn't changed"
          fi
