@@ -137,11 +137,11 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
-          file_name=${file_name// /-}
+          file_name_f=${file_name// /-}
+          mv "$file_name" "$file_name_f"
           echo "The JAR file relative name is $file_name"
-          base_name=$(basename "$file_name")
+          base_name=$(basename "$file_name_f")
           echo "The JAR file base name is $base_name"
-          echo "file_name=$file_name" >> $GITHUB_OUTPUT
           echo "base_name=$base_name" >> $GITHUB_OUTPUT
 
       - name: Application artifact
@@ -150,7 +150,7 @@ jobs:
         with:
           name: applications
           path: |
-            ${{ steps.get_path.outputs.file_name }}
+            build/libs/${{ steps.get_path.outputs.base_name }}
 
       - name: Generate Release
         uses: "marvinpinto/action-automatic-releases@latest"
