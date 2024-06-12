@@ -208,3 +208,28 @@ jobs:
             -H "Content-Type: multipart/form-data" \
             "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets?name=$base_name" \
             --data-binary "@$file_name_f"
+
+      - name: Notify owner
+        if: ${{ env.changed == 'true' }}
+        run: |
+          to="${{ secrets.EMAIL_USER }}"
+          subject="[${{ github.repository }}] Release requires user intervention"
+          message=$(cat <<EOF
+          The release for version ${{ steps.determine_version.outputs.version_num }} has been published but only with a basic description.
+          
+          As always, make sure to edit the release to include a thorough description that includes everything that's changed, thanking contributors, etc.
+          EOF
+          )
+          smtp_server="smtp.gmail.com"
+          smtp_port="587"
+          smtp_user="${{ secrets.EMAIL_USER }}"
+          smtp_pass="${{ secrets.EMAIL_PASS }}"
+  
+          mailsend-go -sub "$subject" -smtp "$smtp_server" -port "$smtp_port" \
+          auth \
+          -user "$smtp_user" -pass "$smtp_pass" \
+          -from "$smtp_user" -to "$smtp_user" \
+          body \
+          -msg "$message"
+  
+          echo "Email sent successfully."
