@@ -139,7 +139,7 @@ jobs:
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           file_name_f=${file_name// /-}
           echo "The JAR file relative name is $file_name"
-          mv "\"$file_name\"" "\"$file_name_f\""
+          mv "$file_name" "$file_name_f"
           base_name=$(basename "$file_name_f")
           echo "The JAR file base name is $base_name"
           echo "base_name=$base_name" >> $GITHUB_OUTPUT
