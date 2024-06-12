@@ -175,25 +175,20 @@ jobs:
         id: build_jar
         if: ${{ env.changed == 'true' }}
         run: |
-          directory=~/actions-runner/_work/${{ github.event.repository.name }}
-          if [ -d "$directory/Build-Files/" ]; then
-            rm -r $directory/Build-Files/build/libs/*
-            cp -a $directory/Build-Files/. .
+          if [ -d "../Build-Files/" ]; then
+            cp -a ../Build-Files/. .
             echo "Copied previous build files"
             ./gradlew build
-            rm -r $directory/Build-Files/*
-            cp -R .gradle/ $directory/Build-Files/
-            cp -R build/ $directory/Build-Files/
-            echo "Updated build files"
+            echo "Updating build files..."
+            rm -r ../Build-Files/*
           else
             echo "Previous build files weren't detected. This will take longer!"
-            mkdir $directory/Build-Files/
+            mkdir ../Build-Files/
             ./gradlew build
-            cp -R .gradle/ $directory/Build-Files/
-            cp -R build/ $directory/Build-Files/
-            echo "Backed up build files"
+            echo "Backing up build files..."
           fi
-       
+          cp -a .gradle ../Build-Files/
+          cp -a build ../Build-Files/
 
       - name: Upload assets
         if: ${{ env.changed == 'true' }}
