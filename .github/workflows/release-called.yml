@@ -19,7 +19,11 @@ jobs:
 
       - name: Prepare local repo
         run: |
-          git fetch --tags origin
+          # Delete local tags
+          git tag -d $(git tag -l)
+          # Get remote tags
+          git fetch --tags
+          # Get permission to run gradle script
           chmod +x gradlew
 
       - name: Get Java info
