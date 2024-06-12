@@ -197,6 +197,7 @@ jobs:
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           echo "The JAR file relative name is $file_name"
           base_name=$(basename "$file_name")
+          base_name=${base_name// /-}
           echo "The JAR file base name is $base_name"
           curl -L \
             -X POST \
