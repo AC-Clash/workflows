@@ -26,7 +26,7 @@ jobs:
           # Get permission to run gradle script
           chmod +x gradlew
 
-      - name: Get Java info
+      - name: Set up JDK
         id: retrieve_java
         run: |
           properties=$(./gradlew -q properties)
@@ -55,11 +55,13 @@ jobs:
               echo "JDK version matches required version. Using the JDK entry '$i'"
               echo "java_exec=$i" >> $GITHUB_OUTPUT
               echo "has_jdk=true" >> $GITHUB_OUTPUT
+              touch gradle.properties
+              echo "org.gradle.java.home=$i" | cat - gradle.properties > temp && mv temp gradle.properties
               break
             fi
           done
 
-      - name: Set up JDK
+      - name: Download JDK
         if: ${{ steps.retrieve_java.outputs.has_jdk != 'true' }}
         uses: actions/setup-java@v4
         with:
@@ -188,6 +190,9 @@ jobs:
             cp -R build/ $directory/Build-Files/
             echo "Backed up build files"
           fi
+          echo "Doing final cleanup..."
+          rm gradle.properties
+       
 
       - name: Upload assets
         if: ${{ env.changed == 'true' }}
