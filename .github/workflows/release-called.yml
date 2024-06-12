@@ -117,7 +117,7 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           if [ -d "../Build-Files/" ]; then
-            cp -a ../Build-Files/. .
+            rsync -av --progress ../Build-Files/. .
             echo "Copied previous build files"
             ./gradlew build
             echo "Updating build files..."
@@ -129,8 +129,8 @@ jobs:
             ./gradlew build
             echo "Backing up build files..."
           fi
-          cp -a .gradle ../Build-Files/
-          cp -a build ../Build-Files/
+          rsync -av --progress .gradle ../Build-Files/
+          rsync -av --progress build ../Build-Files/ --exclude build/libs
 
       - name: Get JAR path
         id: get_path
