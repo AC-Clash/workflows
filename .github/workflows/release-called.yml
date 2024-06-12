@@ -79,10 +79,9 @@ jobs:
            echo "unversioned=true" >> $GITHUB_OUTPUT
            echo "changed=true" >> $GITHUB_ENV
          else
-           last_version=$(git describe --tags $last_tag)
            echo "last_tag=$last_tag" >> $GITHUB_OUTPUT
-           last_version_num=${{ steps.previous_version.outputs.last_version }}
-           last_version_num=${last_version_num//"v"/}
+           last_version=$(git describe --tags $last_tag)
+           last_version_num=${last_version//"v"/}
            echo "last_version_num=$last_version_num" >> $GITHUB_OUTPUT
            echo "The last version was $last_version_num"
          fi
