@@ -161,4 +161,4 @@ jobs:
           prerelease: false
           title: "${{ steps.determine_version.outputs.version_num }}"
           files: |
-            ${{ steps.get_path.outputs.base_name }}
+            build/libs/${{ steps.get_path.outputs.base_name }}
