@@ -195,7 +195,9 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
+          echo "The JAR file name is $file_name"
           base_name=$(basename $file_name)
+          echo "The JAR base name is $base_name"
           curl -L \
             -X POST \
             -H "Accept: application/vnd.github+json" \
