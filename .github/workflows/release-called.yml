@@ -144,20 +144,12 @@ jobs:
           echo "The JAR file base name is $base_name"
           echo "base_name=$base_name" >> $GITHUB_OUTPUT
 
-      - name: Application artifact
-        uses: actions/upload-artifact@v4
-        if: ${{ env.changed == 'true' }}
-        with:
-          name: applications
-          path: |
-            build/libs/${{ steps.get_path.outputs.base_name }}
-
       - name: Generate Release
         uses: "marvinpinto/action-automatic-releases@latest"
         if: ${{ env.changed == 'true' }}
         with:
           repo_token: "${{ secrets.TOKEN }}"
-          automatic_release_tag: "v${{ steps.determine_version.outputs.version_num }}"
+          automatic_release_tag: "latest"
           prerelease: false
           title: "${{ steps.determine_version.outputs.version_num }}"
           files: |
