@@ -107,69 +107,10 @@ jobs:
          changed="${{ steps.determine_version.outputs.version_num != steps.last_version.outputs.last_version_num }}"
          echo "changed=$changed" >> $GITHUB_ENV
          if [ "$changed" = "true" ]; then
-           
            echo "The plugin has updated! The version has changed from ${{ steps.last_version.outputs.last_version_num }} to ${{ steps.determine_version.outputs.version_num }}"
          else
            echo "The plugin version hasn't changed"
          fi
-
-      - name: Generate release notes
-        id: release_notes
-        if: ${{ env.changed == 'true' }}
-        run: |
-         # Get the hash of the last commit
-         unversioned=${{ steps.last_version.outputs.unversioned }}
-         if [ "$unversioned" = "true" ]; then
-           last_commit=$(git rev-list --max-parents=0 HEAD)
-         else
-           last_commit=${{ steps.last_version.outputs.last_tag }}
-         fi
-         echo "The hash of the last version's commit is $last_commit"
-
-         # Get commit messages since then
-         commit_messages="$(git log --pretty=format:"%s" $last_commit..HEAD)"
-          
-         if [ "$commit_message" != "" ]; then
-           printf "Here are the new commit messages! \n$commit_messages"
-          
-           # Generate end of file delimiter
-           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
-          
-           #Initialize release_notes
-           echo "release_notes<<$EOF" >> $GITHUB_OUTPUT
-          
-           # Add each line
-           echo "$commit_messages" | while IFS= read -r line
-           do
-              echo "* $line" >> $GITHUB_OUTPUT
-           done
-          
-           # Finish
-           echo "$EOF" >> $GITHUB_OUTPUT
-         else
-           echo "No new commit messages. Assuming it was only a version change"
-           release_notes="* Updated version to ${{ steps.determine_version.outputs.version_num }}"
-           echo "release_notes=$release_notes" >> $GITHUB_OUTPUT
-         fi
-
-      - name: Create release
-        id: create_release
-        if: ${{ env.changed == 'true' }}
-        run: |
-          echo "Pushing release with the following info..."
-          echo "Tag: v${{ steps.determine_version.outputs.version_num }}"
-          echo "Name: ${{ steps.determine_version.outputs.version_num }}"
-          echo "Body: "
-          echo "${{ steps.release_notes.outputs.release_notes }}"
-          id=$( curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            https://api.github.com/repos/${{ github.repository }}/releases \
-            -d '{"tag_name":"v${{ steps.determine_version.outputs.version_num }}","name":"${{ steps.determine_version.outputs.version_num }}","body":"${{ steps.release_notes.outputs.release_notes }}","draft":false,"prerelease":false,"generate_release_notes":true}' | jq '.id' )
-          echo "The ID is $id"
-          echo "id=$id" >> $GITHUB_OUTPUT
 
       - name: Build JAR file
         id: build_jar
@@ -191,19 +132,33 @@ jobs:
           cp -a .gradle ../Build-Files/
           cp -a build ../Build-Files/
 
-      - name: Upload assets
+      - name: Get JAR path
+        id: get_path
         if: ${{ env.changed == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
+          file_name=${file_name// /-}
           echo "The JAR file relative name is $file_name"
           base_name=$(basename "$file_name")
-          base_name=${base_name// /-}
           echo "The JAR file base name is $base_name"
-          curl -L \
-            -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.TOKEN }}" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -H "Content-Type: multipart/form-data" \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ steps.create_release.outputs.id }}/assets?name=$base_name" \
-            --data-binary "@$file_name"
+          echo "file_name=$file_name" >> $GITHUB_OUTPUT
+          echo "base_name=$base_name" >> $GITHUB_OUTPUT
+
+      - name: Application artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ env.changed == 'true' }}
+        with:
+          name: applications
+          path: |
+            ${{ steps.get_path.outputs.file_name }}
+
+      - name: Generate Release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        if: ${{ env.changed == 'true' }}
+        with:
+          repo_token: "${{ secrets.TOKEN }}"
+          automatic_release_tag: "v${{ steps.determine_version.outputs.version_num }}"
+          prerelease: false
+          title: "${{ steps.determine_version.outputs.version_num }}"
+          files: |
+            ${{ steps.get_path.outputs.base_name }}
