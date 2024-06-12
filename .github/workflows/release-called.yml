@@ -180,7 +180,8 @@ jobs:
             echo "Copied previous build files"
             ./gradlew build
             echo "Updating build files..."
-            rm -r ../Build-Files/*
+            rm -r ../Build-Files/
+            mkdir ../Build-Files/
           else
             echo "Previous build files weren't detected. This will take longer!"
             mkdir ../Build-Files/
