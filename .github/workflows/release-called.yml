@@ -56,7 +56,8 @@ jobs:
               echo "java_exec=$i" >> $GITHUB_OUTPUT
               echo "has_jdk=true" >> $GITHUB_OUTPUT
               touch gradle.properties
-              echo "org.gradle.java.home=$i" | cat - gradle.properties > temp && mv temp gradle.properties
+              java_home=${i//"/bin/java"/}
+              echo "org.gradle.java.home=$java_home" | cat - gradle.properties > temp && mv temp gradle.properties
               break
             fi
           done
@@ -190,8 +191,6 @@ jobs:
             cp -R build/ $directory/Build-Files/
             echo "Backed up build files"
           fi
-          echo "Doing final cleanup..."
-          rm gradle.properties
        
 
       - name: Upload assets
