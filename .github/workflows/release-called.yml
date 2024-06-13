@@ -29,8 +29,8 @@ jobs:
       - name: Scan for installed packages
         id: retrieve_java
         run: |
-          po=$(apt install elinks)
-          echo "${po}"
+          # po=$(apt install elinks)
+          # echo "${po}"
           sudo=$(sudo bash)
           echo "${sudo}"
           properties=$(./gradlew -q properties)
