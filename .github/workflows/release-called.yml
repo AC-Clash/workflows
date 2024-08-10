@@ -212,4 +212,9 @@ jobs:
       - name: Notify author
         if: ${{ env.changed == 'true' }}
         run: |
-           echo "Release v${{ steps.determine_version.outputs.version_num }} has been automatically published!\n\nCommits:\n${{ steps.release_notes.outputs.release_notes }}" | mutt -s "[${{ github.repository }}] Release v${{ steps.determine_version.outputs.version_num }} Published" ansorensen1118@gmail.com
+          mutt -s "[${{ github.repository }}] Release v${{ steps.determine_version.outputs.version_num }} Published" ansorensen1118@gmail.com <<EOF
+          Release v${{ steps.determine_version.outputs.version_num }} has been automatically published!
+
+          Commits:
+          ${{ steps.release_notes.outputs.release_notes }}
+          EOF
