@@ -212,12 +212,15 @@ jobs:
       - name: Notify author
         if: ${{ env.changed == 'true' }}
         run: |
-          mutt -s "[${{ github.repository }}] Release v${{ steps.determine_version.outputs.version_num }} Published" ansorensen1118@gmail.com <<EOF
-          Release v${{ steps.determine_version.outputs.version_num }} has been automatically published!
-
-          Commits:
-          ${{ steps.release_notes.outputs.release_notes }}
-
-          Best regards,
-          ${{ runner.name }} Runner
-          EOF
+         cat > email_body.html <<EOF
+         <html>
+         <body>
+           <a href="https://github.com/${{ github.repository }}/releases/tag/v${{ steps.determine_version.outputs.version_num }}">Release v${{ steps.determine_version.outputs.version_num }}</a> has been automatically published!<br><br>
+           Commits:<br>
+           ${{ steps.release_notes.outputs.release_notes }}<br><br>
+           Best regards,<br>
+           ${{ runner.name }} Runner
+         </body>
+         </html>
+         EOF
+         mutt -e 'set content_type=text/html' -s "[${{ github.repository }}] Release v${{ steps.determine_version.outputs.version_num }} Published" ansorensen1118@gmail.com < email_body.html
