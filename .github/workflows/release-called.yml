@@ -176,17 +176,17 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           if [ -d "../Build-Files/" ]; then
-          rsync -av --progress ../Build-Files/. .
-          echo "Copied previous build files"
-          ./gradlew build
-          echo "Updating build files..."
-          rm -r ../Build-Files/
-          mkdir ../Build-Files/
+            rsync -av --progress ../Build-Files/. .
+            echo "Copied previous build files"
+            ./gradlew build
+            echo "Updating build files..."
+            rm -r ../Build-Files/
+            mkdir ../Build-Files/
           else
-          echo "Previous build files weren't detected. This will take longer!"
-          mkdir ../Build-Files/
-          ./gradlew build
-          echo "Backing up build files..."
+            echo "Previous build files weren't detected. This will take longer!"
+            mkdir ../Build-Files/
+            ./gradlew build
+            echo "Backing up build files..."
           fi
           rsync -av --progress .gradle ../Build-Files/
           rsync -av --progress build ../Build-Files/ --exclude build/libs
@@ -196,7 +196,9 @@ jobs:
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           file_name_f=${file_name// /-}
-          mv "$file_name" "$file_name_f"
+          if [ "$file_name" != "$file_name_f" ]; then
+            mv "$file_name" "$file_name_f"
+          fi
           echo "The JAR file relative name is $file_name_f"
           base_name=$(basename "$file_name_f")
           echo "The JAR file base name is $base_name"
