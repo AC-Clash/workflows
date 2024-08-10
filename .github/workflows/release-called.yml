@@ -217,4 +217,7 @@ jobs:
 
           Commits:
           ${{ steps.release_notes.outputs.release_notes }}
+
+          Best regards,
+          ${{ runner.name }} Runner
           EOF
