@@ -28,39 +28,43 @@ jobs:
 
       - name: Set up JDK
         id: retrieve_java
-        run: |
-          properties=$(./gradlew -q properties)
-          {
-          echo 'properties<<EOF'
-          echo "$properties"
-          echo EOF
-          } >> "$GITHUB_OUTPUT"
-          key="targetCompatibility"
-          target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
-          echo "target=$target" >> $GITHUB_OUTPUT
-          echo "This project requires JDK version $target"
-          
+        run: |      
           # Get installed JDK versions
           java_list=$(update-alternatives --list java)
-          for i in $java_list; do
-            version_output=$("$i" -version 2>&1 | head -n 1)
-            version=$(echo "$version_output" | awk -F'"' '{print $2}')
-            major_version=$(echo "$version" | awk -F'.' '{print $1}')
-            # For versions like 1.8, the major version is the second part
-            if [ "$major_version" = "1" ]; then
-              major_version=$(echo "$version" | awk -F'.' '{print $2}')
-            fi
-            echo "Found JDK version $major_version"
-            if [ "$major_version" = "$target" ]; then
-              echo "JDK version matches required version. Using the JDK entry '$i'"
-              echo "java_exec=$i" >> $GITHUB_OUTPUT
-              echo "has_jdk=true" >> $GITHUB_OUTPUT
-              touch gradle.properties
-              java_home=${i//"/bin/java"/}
-              echo "org.gradle.java.home=$java_home" | cat - gradle.properties > temp && mv temp gradle.properties
-              break
-            fi
-          done
+          if [ "$java_list" != "*error*" ]; then
+            properties=$(./gradlew -q properties)
+            {
+            echo 'properties<<EOF'
+            echo "$properties"
+            echo EOF
+            } >> "$GITHUB_OUTPUT"
+            key="targetCompatibility"
+            target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
+            echo "target=$target" >> $GITHUB_OUTPUT
+            echo "This project requires JDK version $target"
+            
+            for i in $java_list; do
+              version_output=$("$i" -version 2>&1 | head -n 1)
+              version=$(echo "$version_output" | awk -F'"' '{print $2}')
+              major_version=$(echo "$version" | awk -F'.' '{print $1}')
+              # For versions like 1.8, the major version is the second part
+              if [ "$major_version" = "1" ]; then
+                major_version=$(echo "$version" | awk -F'.' '{print $2}')
+              fi
+              echo "Found JDK version $major_version"
+              if [ "$major_version" = "$target" ]; then
+                echo "JDK version matches required version. Using the JDK entry '$i'"
+                echo "java_exec=$i" >> $GITHUB_OUTPUT
+                echo "has_jdk=true" >> $GITHUB_OUTPUT
+                touch gradle.properties
+                java_home=${i//"/bin/java"/}
+                echo "org.gradle.java.home=$java_home" | cat - gradle.properties > temp && mv temp gradle.properties
+                break
+              fi
+            done
+          else
+            echo "No Java installation detected. Installing Adopt ${{ steps.retrieve_java.outputs.target }}"
+          fi
 
       - name: Download JDK
         if: ${{ steps.retrieve_java.outputs.has_jdk != 'true' }}
