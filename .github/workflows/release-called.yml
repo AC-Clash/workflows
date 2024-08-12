@@ -63,14 +63,14 @@ jobs:
               fi
             done
           else
-            echo "No Java installation detected. Installing Adopt ${{ steps.retrieve_java.outputs.target }}"
+            echo "No Java installation detected. Installing Aamazon Corretto ${{ steps.retrieve_java.outputs.target }}"
           fi
 
       - name: Download JDK
         if: ${{ steps.retrieve_java.outputs.has_jdk != 'true' }}
         uses: actions/setup-java@v4
         with:
-          distribution: 'adopt'
+          distribution: 'corretto'
           java-version: '${{ steps.retrieve_java.outputs.target }}'
 
       - name: Get last version
