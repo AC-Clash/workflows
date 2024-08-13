@@ -160,7 +160,10 @@ jobs:
         id: create_release
         if: ${{ env.changed == 'true' }}
         run: |
-          echo "Pushing release with the following info..."
+          echo "Pushing tag for release..."
+          git tag v${{ steps.determine_version.outputs.version_num }} ${{ github.sha }}
+          git push origin tag v${{ steps.determine_version.outputs.version_num }}
+          echo "Creating release with the following info..."
           echo "Tag: v${{ steps.determine_version.outputs.version_num }}"
           echo "Name: ${{ steps.determine_version.outputs.version_num }}"
           echo "Body: "
