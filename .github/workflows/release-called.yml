@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -19,55 +19,53 @@ jobs:
 
       - name: Prepare local repo
         run: |
-          # Delete local tags
-          git tag -d $(git tag -l)
           # Get remote tags
           git fetch --tags
           # Get permission to run gradle script
           chmod +x gradlew
 
-      - name: Set up JDK
+      - name: Set up packages
+        run: |
+          sudo apt update
+          sudo apt install msmtp mutt jq
+          cat > ~/.msmtprc <<EOF
+          # Gmail configuration
+          account default
+          host smtp.gmail.com
+          port 587
+          auth on
+          tls on
+          tls_trust_file /etc/ssl/certs/ca-certificates.crt
+          user ansorensen1118@gmail.com
+          password ${{ secrets.PASSWD }}
+          from ansorensen1118@gmail.com
+          logfile ~/.msmtp.log
+          EOF
+          
+          chmod 600 ~/.msmtprc
+          
+          cat > ~/.muttrc <<EOF
+          set sendmail="/usr/bin/msmtp"
+          set use_from=yes
+          set realname="Anston Sorensen"
+          set from="ansorensen1118@gmail.com"
+          EOF
+
+      - name: Get Java version
         id: retrieve_java
-        run: |      
-          # Get installed JDK versions
-          java_list=$(update-alternatives --list java)
-          if [ "$java_list" != "*error*" ]; then
-            properties=$(./gradlew -q properties)
-            {
-            echo 'properties<<EOF'
-            echo "$properties"
-            echo EOF
-            } >> "$GITHUB_OUTPUT"
-            key="targetCompatibility"
-            target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
-            echo "target=$target" >> $GITHUB_OUTPUT
-            echo "This project requires JDK version $target"
-            
-            for i in $java_list; do
-              version_output=$("$i" -version 2>&1 | head -n 1)
-              version=$(echo "$version_output" | awk -F'"' '{print $2}')
-              major_version=$(echo "$version" | awk -F'.' '{print $1}')
-              # For versions like 1.8, the major version is the second part
-              if [ "$major_version" = "1" ]; then
-                major_version=$(echo "$version" | awk -F'.' '{print $2}')
-              fi
-              echo "Found JDK version $major_version"
-              if [ "$major_version" = "$target" ]; then
-                echo "JDK version matches required version. Using the JDK entry '$i'"
-                echo "java_exec=$i" >> $GITHUB_OUTPUT
-                echo "has_jdk=true" >> $GITHUB_OUTPUT
-                touch gradle.properties
-                java_home=${i//"/bin/java"/}
-                echo "org.gradle.java.home=$java_home" | cat - gradle.properties > temp && mv temp gradle.properties
-                break
-              fi
-            done
-          else
-            echo "No Java installation detected. Installing Aamazon Corretto ${{ steps.retrieve_java.outputs.target }}"
-          fi
+        run: |
+          properties=$(./gradlew -q properties)
+          {
+          echo 'properties<<EOF'
+          echo "$properties"
+          echo EOF
+          } >> "$GITHUB_OUTPUT"
+          key="targetCompatibility"
+          target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
+          echo "target=$target" >> $GITHUB_OUTPUT
+          echo "This project requires JDK version $target"
 
       - name: Download JDK
-        if: ${{ steps.retrieve_java.outputs.has_jdk != 'true' }}
         uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
@@ -182,21 +180,7 @@ jobs:
         id: build_jar
         if: ${{ env.changed == 'true' }}
         run: |
-          if [ -d "../Build-Files/" ]; then
-            rsync -av --progress ../Build-Files/. .
-            echo "Copied previous build files"
-            ./gradlew build
-            echo "Updating build files..."
-            rm -r ../Build-Files/
-            mkdir ../Build-Files/
-          else
-            echo "Previous build files weren't detected. This will take longer!"
-            mkdir ../Build-Files/
-            ./gradlew build
-            echo "Backing up build files..."
-          fi
-          rsync -av --progress .gradle ../Build-Files/
-          rsync -av --progress build ../Build-Files/ --exclude build/libs
+          ./gradlew build
 
       - name: Upload assets
         if: ${{ env.changed == 'true' }}
