@@ -5,6 +5,8 @@ on:
     secrets:
       token:
         required: true
+      passwd:
+        required: true
 
 permissions:
   contents: write
