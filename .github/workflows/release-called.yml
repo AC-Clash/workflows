@@ -64,6 +64,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           key="targetCompatibility"
           target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
+          target=$(echo "$target" | sed 's/^1\.//')
           echo "target=$target" >> $GITHUB_OUTPUT
           echo "This project requires JDK version $target"
 
