@@ -118,6 +118,12 @@ jobs:
            echo "The plugin version hasn't changed"
          fi
 
+      - name: Build JAR file
+        id: build_jar
+        if: ${{ env.changed == 'true' }}
+        run: |
+          ./gradlew build   
+
       - name: Generate release notes
         id: release_notes
         if: ${{ env.changed == 'true' }}
@@ -178,12 +184,6 @@ jobs:
             -d '{"tag_name":"v${{ steps.determine_version.outputs.version_num }}","name":"${{ steps.determine_version.outputs.version_num }}","body":"${{ steps.release_notes.outputs.release_notes }}","draft":false,"prerelease":false,"generate_release_notes":true}' | jq '.id' )
           echo "The ID is $id"
           echo "id=$id" >> $GITHUB_OUTPUT
-
-      - name: Build JAR file
-        id: build_jar
-        if: ${{ env.changed == 'true' }}
-        run: |
-          ./gradlew build
 
       - name: Upload assets
         if: ${{ env.changed == 'true' }}
