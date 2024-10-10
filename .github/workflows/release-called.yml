@@ -112,7 +112,6 @@ jobs:
          changed="${{ steps.determine_version.outputs.version_num != steps.last_version.outputs.last_version_num }}"
          echo "changed=$changed" >> $GITHUB_ENV
          if [ "$changed" = "true" ]; then
-           
            echo "The plugin has updated! The version has changed from ${{ steps.last_version.outputs.last_version_num }} to ${{ steps.determine_version.outputs.version_num }}"
          else
            echo "The plugin version hasn't changed"
@@ -122,11 +121,16 @@ jobs:
         id: build_jar
         if: ${{ env.changed == 'true' }}
         run: |
-          ./gradlew build   
+          ./gradlew build
+          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "main_branch=true" >> $GITHUB_ENV
+          else
+            echo "main_branch=false" >> $GITHUB_ENV
+          fi
 
       - name: Generate release notes
         id: release_notes
-        if: ${{ env.changed == 'true' }}
+        if: ${{ env.main_branch == 'true' }}
         run: |
          # Get the hash of the last commit
          unversioned=${{ steps.last_version.outputs.unversioned }}
@@ -165,7 +169,7 @@ jobs:
 
       - name: Create release
         id: create_release
-        if: ${{ env.changed == 'true' }}
+        if: ${{ env.main_branch == 'true' }}
         run: |
           echo "Pushing tag for release..."
           git tag v${{ steps.determine_version.outputs.version_num }} ${{ github.sha }}
@@ -186,7 +190,7 @@ jobs:
           echo "id=$id" >> $GITHUB_OUTPUT
 
       - name: Upload assets
-        if: ${{ env.changed == 'true' }}
+        if: ${{ env.main_branch == 'true' }}
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           file_name_f=${file_name// /-}
@@ -206,7 +210,7 @@ jobs:
             --data-binary "@$file_name_f"
 
       - name: Notify author
-        if: ${{ env.changed == 'true' }}
+        if: ${{ env.main_branch == 'true' }}
         run: |
          cat > email_body.html <<EOF
          <html>
