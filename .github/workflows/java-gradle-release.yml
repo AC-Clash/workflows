@@ -91,7 +91,7 @@ jobs:
          else
            echo "The hash of the last tag commit is $last_commit"
            echo "last_commit=$last_commit" >> $GITHUB_ENV
-           last_version=$(git describe --tags $last_tag)
+           last_version=$(git describe --tags $last_commit)
            last_version_num=${last_version//"v"/}
            echo "last_version_num=$last_version_num" >> $GITHUB_ENV
            echo "The last version was $last_version_num"
