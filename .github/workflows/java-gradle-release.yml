@@ -69,7 +69,7 @@ jobs:
       - name: Determine current version
         id: determine_version
         run: |
-          version_num=$(grep -oP 'version\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' build.gradle.kts)
+          version_num=$(grep -oP 'version\s*=\s*"\K[^"]+' build.gradle.kts)
           if [[ $version_num == *SNAPSHOT* ]]; then
             echo "snapshot=true" >> $GITHUB_ENV
             echo "Snapshot version detected. Nothing to do here"
