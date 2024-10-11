@@ -18,16 +18,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Prepare local repo
+          
+      - name: Set up packages
         run: |
           # Get remote tags
           git fetch --tags
-          # Get permission to run gradle script
-          chmod +x gradlew
 
-      - name: Set up packages
-        run: |
+          # Install packages
           sudo apt-get update
           sudo apt-get install msmtp mutt
           cat > ~/.msmtprc <<EOF
@@ -113,6 +110,10 @@ jobs:
         id: build_jar
         if: ${{ env.changed == 'true' }}
         run: |
+          # Get permission to run gradle script
+          chmod +x gradlew
+
+          # Build
           ./gradlew build
           if [[ ${{ github.ref }} == refs/heads/main || ${{ github.ref }} == refs/heads/master ]]; then
             echo "main_branch=true" >> $GITHUB_ENV
