@@ -1,4 +1,4 @@
-name: Release Called Workflow
+name: Java (Gradle) Release
 
 on:
   workflow_call:
