@@ -56,15 +56,7 @@ jobs:
       - name: Get Java version
         id: retrieve_java
         run: |
-          properties=$(./gradlew -q properties)
-          {
-          echo 'properties<<EOF'
-          echo "$properties"
-          echo EOF
-          } >> "$GITHUB_OUTPUT"
-          key="targetCompatibility"
-          target=$(echo "$properties" | awk -F': ' -v key="$key" '$1 == key {print $2}')
-          target=$(echo "$target" | sed 's/^1\.//')
+          target=$(grep -oP 'languageVersion\.set\(JavaLanguageVersion\.of\(\K[0-9]+' build.gradle.kts)
           echo "target=$target" >> $GITHUB_OUTPUT
           echo "This project requires JDK version $target"
 
@@ -94,8 +86,7 @@ jobs:
       - name: Determine current version
         id: determine_version
         run: |
-          key="version"
-          version_num=$(echo "${{ steps.retrieve_java.outputs.properties }}" | awk -F': ' -v key="$key" '$1 == key {print $2}')
+          version_num=$(grep -oP 'version\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' build.gradle.kts)
           if [ "$version_num" = "*SNAPSHOT*" ]; then
             echo "unversioned=true" >> $GITHUB_ENV
             echo "changed=false" >> $GITHUB_ENV
