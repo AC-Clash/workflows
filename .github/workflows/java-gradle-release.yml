@@ -71,7 +71,7 @@ jobs:
         run: |
          last_tag=$(git rev-list --tags --max-count=1)
          echo "The hash of the last tag commit is $last_tag"
-         if [ "$last_tag" = "" ]; then
+         if [[ $last_tag = "" ]]; then
            echo "There are no previous tags. There could have been an early snapshot version"
            echo "unversioned=true" >> $GITHUB_ENV
            echo "changed=true" >> $GITHUB_ENV
@@ -87,7 +87,7 @@ jobs:
         id: determine_version
         run: |
           version_num=$(grep -oP 'version\s*=\s*"\K[0-9]+\.[0-9]+\.[0-9]+' build.gradle.kts)
-          if [ "$version_num" = "*SNAPSHOT*" ]; then
+          if [[ $version_num = *SNAPSHOT* ]]; then
             echo "unversioned=true" >> $GITHUB_ENV
             echo "changed=false" >> $GITHUB_ENV
             echo "Snapshot version detected. Nothing to do here"
@@ -102,7 +102,7 @@ jobs:
         run: |
          changed="${{ env.version_num != env.last_version_num }}"
          echo "changed=$changed" >> $GITHUB_ENV
-         if [ "$changed" = "true" ]; then
+         if [[ $changed = true ]]; then
            echo "The plugin has updated! The version has changed from ${{ env.last_version_num }} to ${{ env.version_num }}"
          else
            echo "The plugin version hasn't changed"
@@ -113,7 +113,7 @@ jobs:
         if: ${{ env.changed == 'true' }}
         run: |
           ./gradlew build
-          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/master" ]]; then
+          if [[ ${{ github.ref }} == refs/heads/main || ${{ github.ref }} == refs/heads/master ]]; then
             echo "main_branch=true" >> $GITHUB_ENV
           else
             echo "main_branch=false" >> $GITHUB_ENV
@@ -125,7 +125,7 @@ jobs:
         run: |
          # Get the hash of the last commit
          unversioned=${{ env.unversioned }}
-         if [ "$unversioned" = "true" ]; then
+         if [[ $unversioned == true ]]; then
            last_commit=$(git rev-list --max-parents=0 HEAD)
          else
            last_commit=${{ env.last_tag }}
@@ -135,7 +135,7 @@ jobs:
          # Get commit messages since then
          commit_messages="$(git log --pretty=format:"%s" $last_commit..HEAD)"
           
-         if [ "$commit_message" != "" ]; then
+         if [[ $commit_message != "" ]]; then
            printf "Here are the new commit messages! \n$commit_messages"
           
            # Generate end of file delimiter
@@ -185,7 +185,7 @@ jobs:
         run: |
           file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           file_name_f=${file_name// /-}
-          if [ "$file_name" != "$file_name_f" ]; then
+          if [[ $file_name != $file_name_f ]]; then
             mv "$file_name" "$file_name_f"
           fi
           echo "The JAR file relative name is $file_name_f"
