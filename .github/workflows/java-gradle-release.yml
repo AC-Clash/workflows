@@ -60,9 +60,9 @@ jobs:
           changed="${{ env.version_num != env.last_version_num }}"
           echo "changed=$changed" >> $GITHUB_ENV
           if [[ $changed == true ]]; then
-            echo "The plugin has updated! The version has changed from ${{ env.last_version_num }} to ${{ env.version_num }}"
+            echo "The project has updated! The version has changed from ${{ env.last_version_num }} to ${{ env.version_num }}"
           else
-            echo "The plugin version hasn't changed"
+            echo "The project version hasn't changed"
           fi
 
       - name: Get Java version
