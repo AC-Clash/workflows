@@ -183,7 +183,12 @@ jobs:
       - name: Upload assets
         if: ${{ env.main_branch == 'true' }}
         run: |
-          file_name=$(find build/libs/ -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
+          if [[ ${{ secrets.BUILDDIR }} == "" ]]; then
+            builddir="build/libs/"
+          else
+            builddir=${{ secrets.BUILDDIR }}
+          fi  
+          file_name=$(find "$builddir" -type f -name "*.jar" ! -name "*dev.jar" ! -name "*dev-all.jar")
           file_name_f=${file_name// /-}
           if [[ $file_name != $file_name_f ]]; then
             mv "$file_name" "$file_name_f"
