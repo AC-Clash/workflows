@@ -18,12 +18,86 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Determine current version
+        id: determine_version
+        run: |
+          version_num=$(grep -oP 'version\s*=\s*"\K[^"]+' build.gradle.kts)
+          if [[ $version_num == *SNAPSHOT* ]]; then
+            echo "snapshot=true" >> $GITHUB_ENV
+            echo "Snapshot version detected. Nothing to do here"
+          else
+            echo "version_num=$version_num" >> $GITHUB_ENV
+            echo "The current version is $version_num"
+          fi
           
-      - name: Set up packages
+      - name: Get last version
+        id: last_version
+        if: ${{ env.snapshot != 'true' }}
         run: |
           # Get remote tags
           git fetch --tags
+          
+          last_commit=$(git rev-list --tags --max-count=1)
+          if [[ $last_commit == "" ]]; then
+            echo "There are no previous tags. There could have been an early snapshot version"
+            last_commit=$(git rev-list --max-parents=0 HEAD)
+            changed="true"
+            echo "changed=$changed" >> $GITHUB_ENV
+          else
+            echo "The hash of the last tag commit is $last_commit"
+            echo "last_commit=$last_commit" >> $GITHUB_ENV
+            last_version=$(git describe --tags $last_commit)
+            last_version_num=${last_version//"v"/}
+            echo "last_version_num=$last_version_num" >> $GITHUB_ENV
+            echo "The last version was $last_version_num"
+          fi
 
+      - name: Check if version has changed
+        id: version_changed
+        if: ${{ env.snapshot != 'true' && env.changed != 'true' }}
+        run: |
+          changed="${{ env.version_num != env.last_version_num }}"
+          echo "changed=$changed" >> $GITHUB_ENV
+          if [[ $changed == true ]]; then
+            echo "The plugin has updated! The version has changed from ${{ env.last_version_num }} to ${{ env.version_num }}"
+          else
+            echo "The plugin version hasn't changed"
+          fi
+
+      - name: Get Java version
+        id: retrieve_java
+        if: ${{ env.changed == 'true' }}
+        run: |
+          target=$(grep -oP 'languageVersion\.set\(JavaLanguageVersion\.of\(\K[0-9]+' build.gradle.kts)
+          echo "target=$target" >> $GITHUB_ENV
+          echo "This project requires JDK version $target"
+
+      - name: Download JDK
+        if: ${{ env.changed == 'true' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: '${{ env.target }}'
+
+      - name: Build JAR file
+        id: build_jar
+        if: ${{ env.changed == 'true' }}
+        run: |
+          # Get permission to run gradle script
+          chmod +x gradlew
+
+          # Build
+          ./gradlew build
+          if [[ ${{ github.ref }} == refs/heads/main || ${{ github.ref }} == refs/heads/master ]]; then
+            echo "main_branch=true" >> $GITHUB_ENV
+          else
+            echo "main_branch=false" >> $GITHUB_ENV
+          fi
+
+      - name: Set up packages
+        if: ${{ env.main_branch == 'true' }}
+        run: |
           # Install packages
           sudo apt-get update
           sudo apt-get install msmtp mutt
@@ -50,110 +124,39 @@ jobs:
           set from="ansorensen1118@gmail.com"
           EOF
 
-      - name: Get Java version
-        id: retrieve_java
-        run: |
-          target=$(grep -oP 'languageVersion\.set\(JavaLanguageVersion\.of\(\K[0-9]+' build.gradle.kts)
-          echo "target=$target" >> $GITHUB_ENV
-          echo "This project requires JDK version $target"
-
-      - name: Download JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'corretto'
-          java-version: '${{ env.target }}'
-          
-      - name: Determine current version
-        id: determine_version
-        run: |
-          version_num=$(grep -oP 'version\s*=\s*"\K[^"]+' build.gradle.kts)
-          if [[ $version_num == *SNAPSHOT* ]]; then
-            echo "snapshot=true" >> $GITHUB_ENV
-            echo "Snapshot version detected. Nothing to do here"
-          else
-            echo "version_num=$version_num" >> $GITHUB_ENV
-            echo "The current version is $version_num"
-          fi
-          
-      - name: Get last version
-        id: last_version
-        if: ${{ env.snapshot != 'true' }}
-        run: |
-         last_commit=$(git rev-list --tags --max-count=1)
-         if [[ $last_commit == "" ]]; then
-           echo "There are no previous tags. There could have been an early snapshot version"
-           last_commit=$(git rev-list --max-parents=0 HEAD)
-           changed="true"
-           echo "changed=$changed" >> $GITHUB_ENV
-         else
-           echo "The hash of the last tag commit is $last_commit"
-           echo "last_commit=$last_commit" >> $GITHUB_ENV
-           last_version=$(git describe --tags $last_commit)
-           last_version_num=${last_version//"v"/}
-           echo "last_version_num=$last_version_num" >> $GITHUB_ENV
-           echo "The last version was $last_version_num"
-         fi
-
-      - name: Check if version has changed
-        id: version_changed
-        if: ${{ env.snapshot != 'true' && env.changed != 'true' }}
-        run: |
-         changed="${{ env.version_num != env.last_version_num }}"
-         echo "changed=$changed" >> $GITHUB_ENV
-         if [[ $changed == true ]]; then
-           echo "The plugin has updated! The version has changed from ${{ env.last_version_num }} to ${{ env.version_num }}"
-         else
-           echo "The plugin version hasn't changed"
-         fi
-
-      - name: Build JAR file
-        id: build_jar
-        if: ${{ env.changed == 'true' }}
-        run: |
-          # Get permission to run gradle script
-          chmod +x gradlew
-
-          # Build
-          ./gradlew build
-          if [[ ${{ github.ref }} == refs/heads/main || ${{ github.ref }} == refs/heads/master ]]; then
-            echo "main_branch=true" >> $GITHUB_ENV
-          else
-            echo "main_branch=false" >> $GITHUB_ENV
-          fi
-
       - name: Generate release notes
         id: release_notes
         if: ${{ env.main_branch == 'true' }}
         run: |
-         # Get the hash of the last commit
-         last_commit=${{ env.last_commit }}
-         echo "The hash of the last version's commit is $last_commit"
+          # Get the hash of the last commit
+          last_commit=${{ env.last_commit }}
+          echo "The hash of the last version's commit is $last_commit"
 
-         # Get commit messages since then
-         commit_messages="$(git log --pretty=format:"%s" $last_commit..HEAD)"
+          # Get commit messages since then
+          commit_messages="$(git log --pretty=format:"%s" $last_commit..HEAD)"
           
-         if [[ $commit_message != "" ]]; then
-           printf "Here are the new commit messages! \n$commit_messages"
+          if [[ $commit_message != "" ]]; then
+            printf "Here are the new commit messages! \n$commit_messages"
           
-           # Generate end of file delimiter
-           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+            # Generate end of file delimiter
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           
-           #Initialize release_notes
-           echo "release_notes<<$EOF" >> $GITHUB_ENV
+            #Initialize release_notes
+            echo "release_notes<<$EOF" >> $GITHUB_ENV
           
-           # Add each line
-           echo "$commit_messages" | while IFS= read -r line
-           do
+            # Add each line
+            echo "$commit_messages" | while IFS= read -r line
+            do
               echo "* $line" >> $GITHUB_ENV
-           done
+            done
           
-           # Finish
-           echo "$EOF" >> $GITHUB_ENV
-         else
-           echo "No new commit messages. Assuming it was only a version change"
-           release_notes="* Updated version to ${{ env.version_num }}"
-           echo "release_notes=$release_notes" >> $GITHUB_ENV
-         fi
+            # Finish
+            echo "$EOF" >> $GITHUB_ENV
+          else
+            echo "No new commit messages. Assuming it was only a version change"
+            release_notes="* Updated version to ${{ env.version_num }}"
+            echo "release_notes=$release_notes" >> $GITHUB_ENV
+          fi
 
       - name: Create release
         id: create_release
@@ -200,15 +203,15 @@ jobs:
       - name: Notify author
         if: ${{ env.main_branch == 'true' }}
         run: |
-         cat > email_body.html <<EOF
-         <html>
-         <body>
-           <a href="https://github.com/${{ github.repository }}/releases/tag/v${{ env.version_num }}">Release v${{ env.version_num }}</a> has been automatically published!<br><br>
-           Commits:<br>
-           ${{ env.release_notes }}<br><br>
-           Best regards,<br>
-           ${{ runner.name }} Runner
-         </body>
-         </html>
-         EOF
-         mutt -e 'set content_type=text/html' -s "[${{ github.repository }}] Release v${{ env.version_num }} Published" ansorensen1118@gmail.com < email_body.html
+          cat > email_body.html <<EOF
+          <html>
+          <body>
+            <a href="https://github.com/${{ github.repository }}/releases/tag/v${{ env.version_num }}">Release v${{ env.version_num }}</a> has been automatically published!<br><br>
+            Commits:<br>
+            ${{ env.release_notes }}<br><br>
+            Best regards,<br>
+            ${{ runner.name }} Runner
+          </body>
+          </html>
+          EOF
+          mutt -e 'set content_type=text/html' -s "[${{ github.repository }}] Release v${{ env.version_num }} Published" ansorensen1118@gmail.com < email_body.html
