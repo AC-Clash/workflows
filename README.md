@@ -13,7 +13,7 @@ On every push it:
 3. **Picks the JDK** from the project's `languageVersion` setting and installs that version of Amazon Corretto.
 4. **Builds the JAR** with `./gradlew build`.
 5. **On `main`/`master` only:** tags the commit `v<version>`, creates a GitHub release with notes generated from the commit messages since the last tag, and uploads the built JAR as a release asset.
-6. **Emails the author** a link to the new release.
+6. **Emails the author** a link to the new release, if the `passwd` secret is set.
 
 ### Usage
 
@@ -34,7 +34,7 @@ jobs:
     uses: AC-Clash/workflows/.github/workflows/java-gradle-release.yml@main
     secrets:
       token: ${{ secrets.TOKEN }}
-      passwd: ${{ secrets.PASSWD }}
+      passwd: ${{ secrets.PASSWD }} # optional
 ```
 
 ### Secrets
@@ -42,7 +42,7 @@ jobs:
 | Secret | Purpose |
 | --- | --- |
 | `token` | GitHub token with `contents: write`, used to create the release and upload the JAR |
-| `passwd` | App password for the SMTP account that sends the release email |
+| `passwd` | Optional. App password for the SMTP account that sends the release email. If it is not set, the email step is skipped. |
 
 ### Project requirements
 
